@@ -81,13 +81,27 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
 # Install Claude
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
-# Copy and set up firewall script
-COPY init-firewall.sh /usr/local/bin/
+# Copy and set up firewall script (relative to repo root context)
 USER root
+COPY init-firewall.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/init-firewall.sh && \
   echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \
   chmod 0440 /etc/sudoers.d/node-firewall
+
+# --- RAILWAY API SETUP ---
+WORKDIR /home/node/app
+
+# Copy server.js from the repository root
+COPY server.js ./
+
+# Install Express API dependency framework
+RUN npm install express
+
+# Expose Railway web traffic port
+EXPOSE 3000
+
+# Run as the safe node user
 USER node
 
-# Run indefinitely on startup
-CMD ["sleep", "infinity"]
+# Start the n8n API bridge instead of sleeping
+CMD ["node", "server.js"]
